@@ -1,7 +1,8 @@
 FROM rabbitmq:4.1.4-management-alpine
 
-# Set default nodename to ensure consistency
-ENV RABBITMQ_NODENAME=rabbit@rabbitmq-server
+# Default nodename uses localhost (works on Railway + any environment)
+# Override via RABBITMQ_NODENAME env var for Docker Compose with custom hostnames
+ENV RABBITMQ_NODENAME=rabbit@localhost
 ENV RABBITMQ_USE_LONGNAME=false
 
 # Create data directory and set strict permissions for RabbitMQ 4.x
