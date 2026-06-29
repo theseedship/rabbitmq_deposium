@@ -1,0 +1,363 @@
+{
+  "bindings": [
+    {
+      "arguments": {},
+      "destination": "deposium.events.n8n",
+      "destination_type": "queue",
+      "routing_key": "page.process",
+      "source": "deposium.events",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_1_2",
+      "destination_type": "queue",
+      "routing_key": "runs.assembling",
+      "source": "deposium_prod_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_1_1",
+      "destination_type": "queue",
+      "routing_key": "runs.cutting",
+      "source": "deposium_prod_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_1_0",
+      "destination_type": "queue",
+      "routing_key": "runs.cutting.done",
+      "source": "deposium_prod_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_0_0.dlq",
+      "destination_type": "queue",
+      "routing_key": "runs.failed",
+      "source": "deposium_prod_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_0_1.dlq",
+      "destination_type": "queue",
+      "routing_key": "runs.failed",
+      "source": "deposium_prod_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_1_1.dlq",
+      "destination_type": "queue",
+      "routing_key": "runs.failed",
+      "source": "deposium_prod_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_1_2.dlq",
+      "destination_type": "queue",
+      "routing_key": "runs.failed",
+      "source": "deposium_prod_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_1_1",
+      "destination_type": "queue",
+      "routing_key": "runs.fusion",
+      "source": "deposium_prod_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_0_0",
+      "destination_type": "queue",
+      "routing_key": "runs.precheck",
+      "source": "deposium_prod_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_0_1",
+      "destination_type": "queue",
+      "routing_key": "runs.precheck.done",
+      "source": "deposium_prod_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "deposium_prod_dead_letter",
+      "destination_type": "queue",
+      "routing_key": "failed",
+      "source": "deposium_undelivery_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "deposium_dev_dead_letter",
+      "destination_type": "queue",
+      "routing_key": "runs.failed",
+      "source": "deposium_undelivery_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "deposium_prod_dead_letter",
+      "destination_type": "queue",
+      "routing_key": "runs.failed",
+      "source": "deposium_undelivery_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_0_0.dlq",
+      "destination_type": "queue",
+      "routing_key": "runs.failed",
+      "source": "deposium_undelivery_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_0_1.dlq",
+      "destination_type": "queue",
+      "routing_key": "runs.failed",
+      "source": "deposium_undelivery_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_1_1.dlq",
+      "destination_type": "queue",
+      "routing_key": "runs.failed",
+      "source": "deposium_undelivery_exchange",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "destination": "run_1_2.dlq",
+      "destination_type": "queue",
+      "routing_key": "runs.failed",
+      "source": "deposium_undelivery_exchange",
+      "vhost": "/"
+    }
+  ],
+  "queues": [
+    {
+      "arguments": {
+        "x-max-length": 100000,
+        "x-overflow": "reject-publish",
+        "x-queue-type": "quorum"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "deposium_prod_dead_letter",
+      "type": "quorum",
+      "vhost": "/"
+    },
+    {
+      "arguments": {
+        "x-max-length": 100000,
+        "x-overflow": "reject-publish",
+        "x-queue-type": "quorum"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "run_1_1.dlq",
+      "type": "quorum",
+      "vhost": "/"
+    },
+    {
+      "arguments": {
+        "x-dead-letter-exchange": "deposium_undelivery_exchange",
+        "x-dead-letter-routing-key": "runs.failed",
+        "x-delivery-limit": 3,
+        "x-max-length": 100000,
+        "x-overflow": "reject-publish",
+        "x-queue-leader-locator": "least-leaders",
+        "x-queue-type": "quorum"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "run_0_1",
+      "type": "quorum",
+      "vhost": "/"
+    },
+    {
+      "arguments": {
+        "x-queue-type": "quorum"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "indexation_queue",
+      "type": "quorum",
+      "vhost": "/"
+    },
+    {
+      "arguments": {
+        "x-queue-type": "classic"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "deposium.events.n8n",
+      "type": "classic",
+      "vhost": "/"
+    },
+    {
+      "arguments": {
+        "x-max-length": 100000,
+        "x-overflow": "reject-publish",
+        "x-queue-type": "quorum"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "run_1_2.dlq",
+      "type": "quorum",
+      "vhost": "/"
+    },
+    {
+      "arguments": {
+        "x-dead-letter-exchange": "deposium_undelivery_exchange",
+        "x-dead-letter-routing-key": "runs.failed",
+        "x-delivery-limit": 3,
+        "x-max-length": 100000,
+        "x-overflow": "reject-publish",
+        "x-queue-leader-locator": "least-leaders",
+        "x-queue-type": "quorum"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "run_1_0",
+      "type": "quorum",
+      "vhost": "/"
+    },
+    {
+      "arguments": {
+        "x-max-length": 100000,
+        "x-overflow": "reject-publish",
+        "x-queue-type": "quorum"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "deposium_dev_dead_letter",
+      "type": "quorum",
+      "vhost": "/"
+    },
+    {
+      "arguments": {
+        "x-dead-letter-exchange": "deposium_undelivery_exchange",
+        "x-dead-letter-routing-key": "runs.failed",
+        "x-delivery-limit": 3,
+        "x-max-length": 100000,
+        "x-overflow": "reject-publish",
+        "x-queue-leader-locator": "least-leaders",
+        "x-queue-type": "quorum"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "run_1_1",
+      "type": "quorum",
+      "vhost": "/"
+    },
+    {
+      "arguments": {
+        "x-dead-letter-exchange": "deposium_undelivery_exchange",
+        "x-dead-letter-routing-key": "runs.failed",
+        "x-delivery-limit": 3,
+        "x-max-length": 100000,
+        "x-overflow": "reject-publish",
+        "x-queue-leader-locator": "least-leaders",
+        "x-queue-type": "quorum"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "run_0_0",
+      "type": "quorum",
+      "vhost": "/"
+    },
+    {
+      "arguments": {
+        "x-max-length": 100000,
+        "x-overflow": "reject-publish",
+        "x-queue-type": "quorum"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "run_0_0.dlq",
+      "type": "quorum",
+      "vhost": "/"
+    },
+    {
+      "arguments": {
+        "x-max-length": 100000,
+        "x-overflow": "reject-publish",
+        "x-queue-type": "quorum"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "run_0_1.dlq",
+      "type": "quorum",
+      "vhost": "/"
+    },
+    {
+      "arguments": {
+        "x-dead-letter-exchange": "deposium_undelivery_exchange",
+        "x-dead-letter-routing-key": "runs.failed",
+        "x-delivery-limit": 3,
+        "x-max-length": 100000,
+        "x-overflow": "reject-publish",
+        "x-queue-leader-locator": "least-leaders",
+        "x-queue-type": "quorum"
+      },
+      "auto_delete": false,
+      "durable": true,
+      "name": "run_1_2",
+      "type": "quorum",
+      "vhost": "/"
+    }
+  ],
+  "policies": [],
+  "parameters": [],
+  "rabbitmq_version": "4.1.4",
+  "rabbit_version": "4.1.4",
+  "exchanges": [
+    {
+      "arguments": {},
+      "auto_delete": false,
+      "durable": true,
+      "name": "deposium_undelivery_exchange",
+      "type": "direct",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "auto_delete": false,
+      "durable": true,
+      "name": "deposium_prod_exchange",
+      "type": "direct",
+      "vhost": "/"
+    },
+    {
+      "arguments": {},
+      "auto_delete": false,
+      "durable": true,
+      "name": "deposium.events",
+      "type": "topic",
+      "vhost": "/"
+    }
+  ],
+  "vhosts": [
+    {
+      "limits": [],
+      "metadata": {
+        "description": "Default virtual host",
+        "tags": [],
+        "default_queue_type": "classic"
+      },
+      "name": "/"
+    }
+  ]
+}

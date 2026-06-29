@@ -1,0 +1,67 @@
+name: validate-definitions
+
+# Guards the baked definitions.json so a bad topology file can never reach a boot-time
+# import (a malformed or auth-bearing file would brick the broker on deploy).
+on:
+  push:
+    paths:
+      - definitions.json
+      - .github/workflows/validate-definitions.yml
+  pull_request:
+    paths:
+      - definitions.json
+      - .github/workflows/validate-definitions.yml
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: definitions.json is valid JSON
+        run: jq empty definitions.json
+
+      - name: no auth / node-specific keys are baked
+        run: |
+          for k in users permissions topic_permissions global_parameters; do
+            if jq -e "has(\"$k\")" definitions.json >/dev/null; then
+              echo "::error::definitions.json must not contain '$k' (auth/node-specific — never bake secrets)"
+              exit 1
+            fi
+          done
+          echo "OK: no users/permissions/topic_permissions/global_parameters"
+
+      - name: the "/" vhost is present (blank node won't create it once import is enabled)
+        run: |
+          jq -e '[.vhosts[]?.name] | index("/")' definitions.json >/dev/null \
+            || { echo "::error::definitions.json is missing the \"/\" vhost"; exit 1; }
+          echo "OK: / vhost present"
+
+      - name: run_1_1 has BOTH bindings (runs.cutting + runs.fusion — the wf 1.2 incident)
+        run: |
+          jq -e '
+            [.bindings[] | select(.destination=="run_1_1") | .routing_key] as $rk
+            | ($rk | index("runs.cutting")) != null and ($rk | index("runs.fusion")) != null
+          ' definitions.json >/dev/null \
+            || { echo "::error::run_1_1 must be bound to BOTH runs.cutting and runs.fusion"; exit 1; }
+          echo "OK: run_1_1 ← runs.cutting + runs.fusion"
+
+      - name: the 5 run_* queues are quorum
+        run: |
+          jq -e '
+            [.queues[] | select(.name | test("^run_[0-9]_[0-9]$")) | .arguments["x-queue-type"]] as $t
+            | ($t | length) == 5 and ($t | all(. == "quorum"))
+          ' definitions.json >/dev/null \
+            || { echo "::error::expected 5 run_* queues, all x-queue-type=quorum"; exit 1; }
+          echo "OK: 5 quorum run_* queues"
+
+      - name: the n8n event bus queue is classic (matches n8n's passive declare)
+        run: |
+          jq -e '
+            (.queues[] | select(.name=="deposium.events.n8n") | .arguments["x-queue-type"]) == "classic"
+          ' definitions.json >/dev/null \
+            || { echo "::error::deposium.events.n8n must be classic (quorum would PRECONDITION_FAILED vs n8n)"; exit 1; }
+          echo "OK: deposium.events.n8n is classic"
