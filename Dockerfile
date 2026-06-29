@@ -21,15 +21,26 @@ RUN mkdir -p /etc/rabbitmq/conf.d \
  && printf 'consumer_timeout = 7800000\n' > /etc/rabbitmq/conf.d/20-consumer-timeout.conf \
  && chown rabbitmq:rabbitmq /etc/rabbitmq/conf.d/20-consumer-timeout.conf
 
-# Create wrapper script to fix .erlang.cookie permissions at runtime
-RUN echo '#!/bin/sh' > /docker-entrypoint-wrapper.sh && \
-    echo 'set -e' >> /docker-entrypoint-wrapper.sh && \
-    echo 'if [ -f /var/lib/rabbitmq/.erlang.cookie ]; then' >> /docker-entrypoint-wrapper.sh && \
-    echo '  chmod 600 /var/lib/rabbitmq/.erlang.cookie' >> /docker-entrypoint-wrapper.sh && \
-    echo '  chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie' >> /docker-entrypoint-wrapper.sh && \
-    echo 'fi' >> /docker-entrypoint-wrapper.sh && \
-    echo 'exec docker-entrypoint.sh "$@"' >> /docker-entrypoint-wrapper.sh && \
-    chmod +x /docker-entrypoint-wrapper.sh
+# Self-provision the full ingestion topology on every boot from a baked, auth-stripped
+# definitions file. WHY: the Railway service was wiped on 2026-06-29 (redeploy without a
+# volume) — empty broker → n8n could not declare run_0_0 (passive QueueDeclare 404) →
+# ingestion halted prod+staging. With filesystem import a fresh/empty volume re-creates the
+# exchanges, the 5 quorum run_* queues (with the exact app args), BOTH run_1_1 bindings
+# (runs.cutting + the incident-critical runs.fusion that the app's assertQueues structurally
+# cannot express), the n8n event bus and the DLQs — BEFORE n8n or the app connect.
+# Import is additive + idempotent and NEVER deletes entities absent from the file.
+# CAVEAT: with import enabled, a BLANK node skips default user/vhost creation, so the login
+# user is (re)seeded idempotently in docker-entrypoint-wrapper.sh from $RABBITMQ_DEFAULT_*.
+# Regenerate definitions.json from the live broker on any topology change (see README).
+RUN printf 'definitions.import_backend = local_filesystem\ndefinitions.local.path = /etc/rabbitmq/definitions.json\ndefinitions.skip_if_unchanged = true\n' \
+      > /etc/rabbitmq/conf.d/15-definitions.conf \
+ && chown rabbitmq:rabbitmq /etc/rabbitmq/conf.d/15-definitions.conf
+COPY --chown=rabbitmq:rabbitmq definitions.json /etc/rabbitmq/definitions.json
+
+# Entrypoint wrapper: fixes the erlang cookie perms (pre-boot) and seeds the login user
+# (post-boot) to compensate for the import-suppresses-default-user behavior above.
+COPY docker-entrypoint-wrapper.sh /docker-entrypoint-wrapper.sh
+RUN chmod +x /docker-entrypoint-wrapper.sh
 
 EXPOSE 5672 15672
 
