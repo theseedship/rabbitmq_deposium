@@ -48,15 +48,19 @@ COPY --chown=rabbitmq:rabbitmq definitions.json /etc/rabbitmq/definitions.json
 COPY docker-entrypoint-wrapper.sh /docker-entrypoint-wrapper.sh
 RUN chmod +x /docker-entrypoint-wrapper.sh
 
-# Readiness gates on the login user EXISTING, not just the node running. On a blank/wiped
-# volume the AMQP port opens before the background seed creates the env user, so a client
-# connecting in that window gets ACCESS_REFUSED. Reporting healthy only once the user exists
-# lets orchestrators (compose `depends_on: service_healthy`, Railway deploy gating) hold
-# clients back until login works; client-side retries cover the rest. start-period is wide
-# so the one-time blank-volume seed never counts as a failure.
+# Readiness gates on the login credentials actually WORKING, not just the node running. On a
+# blank/wiped volume the AMQP port opens before the background seed creates the env user; on a
+# warm volume with a rotated password the username already exists but the seed has not yet run
+# change_password — in both cases a client connecting early gets ACCESS_REFUSED. We therefore
+# authenticate as the env user (verifies the seed's add_user/change_password completed). Local
+# compose `depends_on: service_healthy` then holds dependents back until login truly works, and
+# the state is surfaced in the Docker/Railway UI. (Railway gates *deploys* on an HTTP
+# healthcheckPath, not on this AMQP HEALTHCHECK, so on Railway the practical protection is the
+# surfaced health + client-side retries.) start-period is wide so the one-time blank-volume seed
+# never counts as a failure.
 HEALTHCHECK --interval=15s --timeout=10s --start-period=90s --retries=6 \
   CMD /sbin/su-exec rabbitmq env HOME=/var/lib/rabbitmq sh -c \
-      'rabbitmq-diagnostics -q check_running && rabbitmqctl -q list_users | grep -qw "${RABBITMQ_DEFAULT_USER:-guest}"'
+      'rabbitmq-diagnostics -q check_running && rabbitmqctl -q authenticate_user "$RABBITMQ_DEFAULT_USER" "$RABBITMQ_DEFAULT_PASS"'
 
 EXPOSE 5672 15672
 

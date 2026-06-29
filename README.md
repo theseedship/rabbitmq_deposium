@@ -33,11 +33,15 @@ To make a wipe survivable, the image now **imports a baked definitions file on e
   `definitions.skip_if_unchanged`) so a restart also **repairs** a topology damaged at runtime —
   if a queue/binding is deleted on a still-existing volume, the next restart recreates it.
   Runtime-created users/queues survive restarts (import only adds, never deletes).
-- **Readiness gates on the login user existing.** On a blank/wiped volume the AMQP port opens
-  before the background seed creates the env user, so a client connecting in that ~second-long
-  window would hit `ACCESS_REFUSED`. The image's `HEALTHCHECK` reports healthy only once the
-  user exists, so orchestrators (compose `depends_on: service_healthy`, Railway deploy gating)
-  hold dependents back; client-side retries cover the rest.
+- **Readiness gates on the login credentials working.** On a blank/wiped volume the AMQP port
+  opens before the background seed creates the env user; on a warm volume with a rotated
+  password the user exists but the new password isn't applied until the seed runs
+  `change_password`. A client connecting in that window hits `ACCESS_REFUSED`. The image's
+  `HEALTHCHECK` therefore **authenticates** as the env user (not just checks it exists), so it
+  reports healthy only once login truly works. Local compose `depends_on: service_healthy` then
+  holds dependents back; the state is surfaced in the Docker/Railway UI. (Railway gates *deploys*
+  on an HTTP `healthcheckPath`, not on this AMQP healthcheck — on Railway the practical
+  protection is the surfaced health plus client-side retries.)
 
 ### Why the entrypoint seeds the login user
 

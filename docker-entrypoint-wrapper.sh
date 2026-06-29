@@ -62,6 +62,12 @@ if [ -n "$RABBITMQ_DEFAULT_USER" ] && [ -n "$RABBITMQ_DEFAULT_PASS" ]; then
     $RBTCTL set_permissions -p / "$RABBITMQ_DEFAULT_USER" ".*" ".*" ".*"
     echo "[entrypoint-wrapper] ensured login user '$RABBITMQ_DEFAULT_USER' (definitions-import blank-node guard)"
   ) &
+else
+  # Loud warning, not a silent skip: with definitions import enabled a blank node creates
+  # NO default user, so without RABBITMQ_DEFAULT_USER/PASS the broker boots with a complete
+  # topology but ZERO login users — every client gets ACCESS_REFUSED and the HEALTHCHECK
+  # (which authenticates) never goes healthy. Make that misconfiguration obvious in the logs.
+  echo "[entrypoint-wrapper] WARNING: RABBITMQ_DEFAULT_USER/PASS not set — no login user will be seeded; the broker will have no usable credentials and will stay unhealthy" >&2
 fi
 
 # (3) Stock entrypoint.
