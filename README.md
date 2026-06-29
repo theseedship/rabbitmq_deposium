@@ -27,12 +27,14 @@ To make a wipe survivable, the image now **imports a baked definitions file on e
 - `definitions.json` (committed, **auth-stripped**) contains the exchanges, the 5 quorum
   `run_*` queues with their exact arguments, **both** `run_1_1` bindings
   (`runs.cutting` **and** the incident-critical `runs.fusion`), the `deposium.events.n8n`
-  classic bus and the DLQs.
+  classic bus and the per-stage DLQs.
 - The import is **additive + idempotent** and **never deletes** entities that exist in the
   broker but not in the file. Import runs on **every** boot (we deliberately do **not** set
   `definitions.skip_if_unchanged`) so a restart also **repairs** a topology damaged at runtime —
   if a queue/binding is deleted on a still-existing volume, the next restart recreates it.
   Runtime-created users/queues survive restarts (import only adds, never deletes).
+
+> **Known limitations (faithfully reproduced from the live topology; both NON-LOSS; tracked by the C2 consolidation).** The baked file mirrors the app's current `QUEUE_ARGS`, so it inherits two DLQ quirks: (1) **no dedicated `run_1_0.dlq`** — there are 4 `.dlq` queues for 5 `run_*` stages; (2) **every `.dlq` is bound on the same `runs.failed` key**, so a single dead-lettered message **fans out into all four** DLQs. Neither loses messages (`run_1_0` failures are still captured by the global DLQ + the other `.dlq` queues). Fixing them needs an app-side `QUEUE_ARGS` change (per-queue dead-letter keys), which is why it is deferred to C2 rather than edited into `definitions.json` (which must stay a faithful reproduction of what the app declares).
 - **Readiness gates on the login credentials working.** On a blank/wiped volume the AMQP port
   opens before the background seed creates the env user; on a warm volume with a rotated
   password the user exists but the new password isn't applied until the seed runs
