@@ -29,8 +29,15 @@ To make a wipe survivable, the image now **imports a baked definitions file on e
   (`runs.cutting` **and** the incident-critical `runs.fusion`), the `deposium.events.n8n`
   classic bus and the DLQs.
 - The import is **additive + idempotent** and **never deletes** entities that exist in the
-  broker but not in the file (`definitions.skip_if_unchanged = true` also avoids re-import
-  churn when nothing changed). Runtime-created users/queues survive restarts.
+  broker but not in the file. Import runs on **every** boot (we deliberately do **not** set
+  `definitions.skip_if_unchanged`) so a restart also **repairs** a topology damaged at runtime —
+  if a queue/binding is deleted on a still-existing volume, the next restart recreates it.
+  Runtime-created users/queues survive restarts (import only adds, never deletes).
+- **Readiness gates on the login user existing.** On a blank/wiped volume the AMQP port opens
+  before the background seed creates the env user, so a client connecting in that ~second-long
+  window would hit `ACCESS_REFUSED`. The image's `HEALTHCHECK` reports healthy only once the
+  user exists, so orchestrators (compose `depends_on: service_healthy`, Railway deploy gating)
+  hold dependents back; client-side retries cover the rest.
 
 ### Why the entrypoint seeds the login user
 
